@@ -264,5 +264,25 @@ function testLiveQuery(queryHook: 'useLiveQuery' | 'useLiveIncrementalQuery') {
         ]),
       )
     })
+
+    it('resets results when params change', async () => {
+      await db.exec(`INSERT INTO test (name) VALUES ('test1'),('test2');`)
+
+      const { rerender, result } = renderHook(
+        ({ params }) =>
+          hookFn(`SELECT * FROM test WHERE name = $1`, params, incKey),
+        { wrapper, initialProps: { params: ['test1'] } },
+      )
+
+      await waitFor(() => expect(result.current).toBe(undefined))
+      await waitFor(() => expect(result.current?.rows).toHaveLength(1))
+
+      rerender({
+        params: ['test3'],
+      })
+
+      await waitFor(() => expect(result.current).toBe(undefined))
+      await waitFor(() => expect(result.current?.rows).toHaveLength(0))
+    })
   })
 }
